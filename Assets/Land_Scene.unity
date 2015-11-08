@@ -511,7 +511,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1945bb1a4834e40b9b033420d5d111c3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cam: {fileID: 0}
+  cam: {fileID: 979817697}
   speed: 60
   jumpSpeed: 50
   gravity: 95

@@ -493,6 +493,7 @@ GameObject:
   - 143: {fileID: 1690525228}
   - 114: {fileID: 1690525227}
   - 114: {fileID: 1690525233}
+  - 114: {fileID: 1690525234}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -511,7 +512,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1945bb1a4834e40b9b033420d5d111c3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cam: {fileID: 0}
+  cam: {fileID: 979817697}
   speed: 60
   jumpSpeed: 50
   gravity: 95
@@ -603,3 +604,20 @@ MonoBehaviour:
   referenceTerrain: {fileID: 1468272644}
   TERRAIN_BUFFER_COUNT: 50
   spread: 1
+--- !u!114 &1690525234
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1690525226}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cadd54e4832aeef4b9359f44cbe335cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rotationRange: {x: 360, y: 360}
+  rotationSpeed: 8
+  dampingTime: .100000001
+  autoZeroVerticalOnMobile: 1
+  autoZeroHorizontalOnMobile: 1
+  relative: 1
