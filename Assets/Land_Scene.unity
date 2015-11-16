@@ -346,7 +346,7 @@ TerrainCollider:
   m_Material: {fileID: 0}
   m_Enabled: 1
   m_TerrainData: {fileID: 15600000, guid: 1f8ec1b5bb88445db92eaa7e09f5d4aa, type: 2}
-  m_EnableTreeColliders: 1
+  m_EnableTreeColliders: 0
 --- !u!218 &1468272644
 Terrain:
   m_ObjectHideFlags: 0
@@ -356,12 +356,12 @@ Terrain:
   m_Enabled: 1
   serializedVersion: 3
   m_TerrainData: {fileID: 15600000, guid: 1f8ec1b5bb88445db92eaa7e09f5d4aa, type: 2}
-  m_TreeDistance: 2000
-  m_TreeBillboardDistance: 50
+  m_TreeDistance: 500
+  m_TreeBillboardDistance: 765
   m_TreeCrossFadeLength: 5
   m_TreeMaximumFullLODCount: 50
-  m_DetailObjectDistance: 80
-  m_DetailObjectDensity: 1
+  m_DetailObjectDistance: 100
+  m_DetailObjectDensity: .00899999961
   m_HeightmapPixelError: 5
   m_SplatMapDistance: 1000
   m_HeightmapMaximumLOD: 0
@@ -375,7 +375,7 @@ Terrain:
     rgba: 4286545791
   m_LegacyShininess: .078125
   m_MaterialTemplate: {fileID: 0}
-  m_BakeLightProbesForTrees: 1
+  m_BakeLightProbesForTrees: 0
   m_ScaleInLightmap: 1
   m_LightmapParameters: {fileID: 15203, guid: 0000000000000000f000000000000000, type: 0}
 --- !u!4 &1468272645
@@ -582,7 +582,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1690525226}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -20, y: 18.6000004, z: 7.80000019}
+  m_LocalPosition: {x: -18, y: 18.6000004, z: -23.7000008}
   m_LocalScale: {x: 10, y: 10, z: 10}
   m_Children:
   - {fileID: 979817698}
@@ -601,5 +601,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerGameObject: {fileID: 1690525226}
   referenceTerrain: {fileID: 1468272644}
-  TERRAIN_BUFFER_COUNT: 50
+  TERRAIN_BUFFER_COUNT: 80
   spread: 1
