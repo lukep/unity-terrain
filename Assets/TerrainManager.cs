@@ -6,10 +6,23 @@ using System.Collections.Generic;
 public class TerrainManager : MonoBehaviour {
 	
 	public GameObject playerGameObject;
+	public GameObject sphereGameObject;
 	public Terrain referenceTerrain;
 	public int TERRAIN_BUFFER_COUNT = 50;
 	public int spread = 1;
-	
+	public int treeLow = 5;
+	public int treeHigh = 20;
+
+	public int hillLow = 2;
+	public int hillHigh = 8;
+	public int hillSizeLow = 8;
+	public int hillSizeHigh = 30;
+
+	private int xMoves = 0;
+	private int yMoves = 0;
+	private bool blockWay = false;
+	private Vector3 lastPos;
+	private int updateCount = 0;
 	private int[] currentTerrainID;
 	private int[] previousTerrainID;
 	private int[] tempTerrainID;
@@ -23,8 +36,11 @@ public class TerrainManager : MonoBehaviour {
 	private Vector2 referenceSize;
 	private Quaternion referenceRotation;
 
+	private int treeBase;
 	private int tileWidth;
 	private int tileHeight;
+
+	private List<TreeInstance> TreeInstances;
 
 	// The order that tiles are dropped
 	private int[][] tileOrder = new int[8][]{ 
@@ -51,6 +67,8 @@ public class TerrainManager : MonoBehaviour {
 		referencePosition = referenceTerrain.transform.position;
 		referenceRotation = referenceTerrain.transform.rotation;
 		referenceSize = new Vector2(referenceTerrain.terrainData.size.x, referenceTerrain.terrainData.size.z);
+
+		treeBase = referenceTerrain.terrainData.treeInstanceCount;
 
 		tileWidth = referenceTerrain.terrainData.heightmapWidth;
 		tileHeight = referenceTerrain.terrainData.heightmapHeight;
@@ -80,11 +98,30 @@ public class TerrainManager : MonoBehaviour {
 
 		string dbgString = "";
 
-		if( currentTerrainID[0] != tempTerrainID[0] || currentTerrainID[1] != tempTerrainID[1] )
+		if( currentTerrainID[0] != tempTerrainID[0] || currentTerrainID[1] != tempTerrainID[1] ){
+
+			// Moved to a new tile
 			CopyArrayFromTo(ref tempTerrainID, ref previousTerrainID);
 
 
-		dbgString = "CurrentID : " + currentTerrainID[0] + ", " + currentTerrainID[1] + "\n\n";
+			if(currentTerrainID[0] == previousTerrainID[0]){
+				yMoves++;
+				xMoves = 0;
+			}
+			else if(currentTerrainID[1] == previousTerrainID[1]){
+				xMoves++;
+				yMoves = 0;
+			}
+
+			if( xMoves + yMoves > 2 ){
+				blockWay = true;
+			}
+
+
+		}
+
+
+		//dbgString = "CurrentID : " + currentTerrainID[0] + ", " + currentTerrainID[1] + "\n\n";
 
 
 
@@ -99,12 +136,46 @@ public class TerrainManager : MonoBehaviour {
 
 				//if(i != 0 && j != 0){
 			DropTerrainAt(currentTerrainID[0] + tileOrder[i][0], currentTerrainID[1] + tileOrder[i][1]);
-					//dbgString += (currentTerrainID[0] + i) + "," + (currentTerrainID[1] + j) + "\n";
+			dbgString += "NEW TILE: " + currentTerrainID[0] + tileOrder[i][0] + " " + currentTerrainID[1] + tileOrder[i][1] + "\n";
 				//} else { dbgString += "Skipping original terrain"; }
 
 			//}
 
 		}
+
+		updateCount++;
+		if(updateCount == 1){
+			lastPos = warpPosition;
+		}
+		else if(updateCount > 400){
+
+			// Check position of player after some frames, if they haven't moved very far, activate something
+
+			updateCount = 0;
+
+			float distance = Vector3.Distance (warpPosition, lastPos);
+			//Debug.Log("DISTANCE: " + distance);
+			
+			if(distance < 200){
+
+				Vector3 spherePos = warpPosition;
+				Vector3 lookDir = playerGameObject.transform.forward;
+				lookDir.Normalize();
+
+				// Add a "boulder"
+				spherePos.x += (lookDir.x * 50);
+				spherePos.z += (lookDir.y * 50);
+				spherePos.y += lookDir.z + 25;
+				
+				//Debug.Log(spherePos);
+				//Debug.Log(warpPosition);
+				
+				Instantiate(sphereGameObject, spherePos, Quaternion.identity);
+
+			}
+
+		}
+
 
 		//Debug.Log(dbgString);
 
@@ -138,14 +209,14 @@ public class TerrainManager : MonoBehaviour {
 			doUpdate = true;
 
 			// Create a new data object
-			Debug.Log("Calling CreateNewTerrainData at " + i + " " + j);
+			//Debug.Log("Calling CreateNewTerrainData at " + i + " " + j);
 			terrainUsageData[i,j] = CreateNewTerrainData();
 		}
 
 		// No problems, time to activate the tile!
 		if(doUpdate){
 
-			hillFactor[i,j] = Random.Range(1,5);
+			hillFactor[i,j] = Random.Range(hillLow,hillHigh);
 
 			ActivateUsedTile(i, j);
 			usedTiles[terrainUsage[i,j]] = true;
@@ -222,7 +293,7 @@ public class TerrainManager : MonoBehaviour {
 		// 0,0 is original tile, 0,1 is front, -1,0 is left, 1,0 is right
 		terrainBlock.name = "Tile " + i + " " + j;
 
-		Debug.Log("Updating: " + terrainBlock.name);
+		//Debug.Log("Updating: " + terrainBlock.name);
 
 		int xResolution = terrainBlock.terrainData.heightmapWidth;
 		int zResolution = terrainBlock.terrainData.heightmapHeight;
@@ -266,26 +337,41 @@ public class TerrainManager : MonoBehaviour {
 		else
 			newHillFactor = Mathf.Max(1, newHillFactor--);
 
-		Debug.Log("Last Tile: " + previousTileX + ", " + previousTileY + " New HILL: " + newHillFactor + " Old Hill: " + hillFactor[ previousTileX, previousTileY ] );
+
+		if(blockWay){
+			blockWay = false;
+			newHillFactor += 10;
+			Debug.Log("BIG HILLS");
+		}
+
+
+		//Debug.Log("Last Tile: " + previousTileX + ", " + previousTileY + " New HILL: " + newHillFactor + " Old Hill: " + hillFactor[ previousTileX, previousTileY ] );
+		//Debug.Log("This Tile: " + i + ", " + j);
 
 		hillFactor[ i, j ] = newHillFactor;
 
 		// Loop over every point on the terrain and adjust the height accordingly
-		terrainBlock.terrainData.SetHeights(0, 0, ReturnHeightmap(borders, xResolution, zResolution, newHillFactor));
+		terrainBlock.terrainData.SetHeights(0, 0, ReturnHeightmap(borders, xResolution, zResolution, newHillFactor, terrainBlock.GetPosition()));
 
 
 		//Smooth(terrainBlock);
 
-		//terrainBlock.terrainData.treeInstances = 
+	
+		int prevTreeCount = terrainBuffer [terrainUsage [previousTileX, previousTileY]].terrainData.treeInstanceCount;
+		int treeChange = Random.Range(treeLow, treeHigh);
+
+		int newTreeCount = prevTreeCount + ( prevTreeCount >= treeBase ? treeChange : -treeChange );
+
+		//Debug.Log("Trees, Prev, New: " + prevTreeCount + " " + newTreeCount);
+
+		newTreeCount = Mathf.Min(newTreeCount, 0);
+
+		UpdateTrees(ref terrainBlock, newTreeCount);
 
 
 		// Also update the collider
 		TerrainCollider tc = terrainBlock.gameObject.GetComponent<TerrainCollider>();
 		tc.terrainData = terrainBlock.terrainData;
-
-
-		//terrainBlock.terrainData.GetTreeInstance
-
 
 
 		// TODO: Need to update surrounding tiles now?
@@ -295,11 +381,30 @@ public class TerrainManager : MonoBehaviour {
 
 	}
 
+	void UpdateTrees(ref Terrain terrain, int newTreeCount){
+
+		TreeInstances = new List<TreeInstance>(terrain.terrainData.treeInstances);
+		
+		//Debug.Log("TREES");
+		//Debug.Log(td.treeInstances[0]);
+
+		TreeInstance newTree = terrain.terrainData.treeInstances[0];
+
+		for (int i = 0; i < newTreeCount; i++){
+			//Debug.Log(newTree.position.x);
+			newTree.position.Set( Random.Range(0.0f,0.9f), 0.0f, Random.Range(0.0f,0.9f) );
+			TreeInstances.Add(newTree);
+		}
+
+		terrain.terrainData.treeInstances = TreeInstances.ToArray();
+
+	}
+
 	int GetTreeCount(TerrainData td){
 		return td.treeInstanceCount;
 	}
 
-	float[,] ReturnHeightmap(float[][] borders, int x, int y, int hillFactor){
+	float[,] ReturnHeightmap(float[][] borders, int x, int y, int hillFactor, Vector3 terrainPos){
 
 		float xFactor, yFactor;
 		float heightVal = 0;
@@ -319,7 +424,7 @@ public class TerrainManager : MonoBehaviour {
 
 		// TODO: Figure out how to add some randomness while still keeping borders correct
 
-		// Transform the incoming border
+		// Transform the incoming border?
 
 
 	
@@ -346,6 +451,11 @@ public class TerrainManager : MonoBehaviour {
 			randHeights[3] = Random.Range(randLow, randHigh);
 
 
+		// hasBorders is accurate!
+		//Debug.Log("hasborders: " + hasBorder[0] + hasBorder[1] + hasBorder[2] + hasBorder[3]);
+
+
+
 		// Moving from left to right
 		for (int My = 0; My < y; My++) {
 
@@ -360,6 +470,14 @@ public class TerrainManager : MonoBehaviour {
 				// Bottom, top, etc means I'm GETTING my border from that direction
 
 
+				// Top is affected by left and right
+
+				// Right is affected by top and bottom
+
+				// Bottom is affected by left and right
+
+				// Left is affected by top and bottom
+
 							
 				// Top
 				if(hasBorder[0]){
@@ -369,9 +487,10 @@ public class TerrainManager : MonoBehaviour {
 					borderHeights[0] = borders[0][My];
 
 					// If there is no opposite border given, make it up!
-					if(!hasBorder[2]){
+					if(!hasBorder[1] && !hasBorder[2] && !hasBorder[3]){
 						//borderHeights[2] = randHeights[2];
 					}
+					
 
 				}
 
@@ -379,31 +498,36 @@ public class TerrainManager : MonoBehaviour {
 				if(hasBorder[1]){
 
 					borderHeights[1] = borders[1][Mx];
+
 					// If there is no opposite border given, make it up!
-					if(!hasBorder[3]){
+					if(!hasBorder[0] && !hasBorder[2] && !hasBorder[3]){
 						//borderHeights[3] = randHeights[3];
 					}
 
 				}
 
-				// Bottom
-				if(hasBorder[2] && !hasBorder[0]){
+				// Bottom: The tile "below" this one exists
+				if(hasBorder[2]){
 
 					// If there exists a bottom border
 
 					borderHeights[2] = borders[2][My];
-					//borderHeights[0] = randHeights[0];
+
+					if(!hasBorder[0] && !hasBorder[1] && !hasBorder[3]){
+						//borderHeights[0] = randHeights[0];
+					}
 
 				}
 
 				// Left
-				if(hasBorder[3] && !hasBorder[1]){
+				if(hasBorder[3]){
 
 					borderHeights[3] = borders[3][Mx];
-					//borderHeights[1] = randHeights[1];
 
+					if(!hasBorder[0] && !hasBorder[1] && !hasBorder[2]){
+						//borderHeights[1] = randHeights[1];
+					}
 				}
-			
 			
 				// Overall problem: values being added from both "sweeps"", doubles up heights
 
@@ -416,14 +540,33 @@ public class TerrainManager : MonoBehaviour {
 				yFactor = Mathf.Lerp( borderHeights[3], borderHeights[1], (float)My/y );
 
 
+				// (float)Mx/x + (float)My/y is correct for right borders
+
+				// (float)My/y + (float)Mx/x for left borders
+
 
 				// NOW this needs to be lerped over?
-				if(yFactor > 0 && xFactor > 0)
-					heightVal = Mathf.Lerp( xFactor, yFactor, 0.5f );
-				else
-					heightVal = xFactor + yFactor;
 
-			
+
+				//heightVal = Mathf.Lerp( xFactor, yFactor, lerpFactor);
+
+				// Works for the initial tiles!
+				//heightVal = xFactor + yFactor;
+
+
+
+
+
+				// Has a right border
+				//var lerpFactor = (float)Mx/x; // hasBorder[3] ? (float)My/y + (float)Mx/x : (float)Mx/x + (float)My/y;
+
+				if(yFactor > 0 && xFactor > 0){
+					heightVal = Mathf.Lerp( xFactor, yFactor, 0.5f );
+						//+ Mathf.Lerp( yFactor, xFactor, (float)Mx/x );
+				} else {
+					heightVal = xFactor + yFactor;
+				}
+
 				
 				heights[Mx, My] = (float)((float)heightVal);
 
@@ -435,7 +578,7 @@ public class TerrainManager : MonoBehaviour {
 		while(hillFactor > 0){
 			hillFactor--;
 
-			AddHill(x-1, y-1, heights);
+			AddHill(x-1, y-1, heights, terrainPos);
 		}
 
 
@@ -474,14 +617,17 @@ public class TerrainManager : MonoBehaviour {
 
 	}
 
-	private void AddHill(int xMax, int yMax, float[,] heights){
+	private void AddHill(int xMax, int yMax, float[,] heights, Vector3 spherePos){
 
-		int size = Random.Range(5, 30);
+
+		int size = Random.Range(hillSizeLow, hillSizeHigh);
+
 
 		int x = Random.Range(size, xMax-size);
 		int y = Random.Range(size, yMax-size);
 
 		float height;
+		//float maxHeight = 0;
 		
 		for(int i = x-size; i < x+size; i++){
 
@@ -495,9 +641,11 @@ public class TerrainManager : MonoBehaviour {
 				if( i < xMax && j < yMax )
 					heights[i,j] += (height / 6000.0f);
 
+				//if(i == x && j == y)
+				//	maxHeight = heights[i,j] * 100;
+				
 			}
 		}
-
 	}
 
 	private void Smooth(Terrain terrain){
